@@ -55,3 +55,13 @@ def proxy_server(webserver, port, conn, data, addr):
                 conn.send(reply)
                 dar = float(len(reply))
                 dar = dar / BUFFER_SIZE
+                dar = '%.3s KB' % str(dar)
+                print('req %s %s' % (str(addr[0]), dar))
+            else:
+                break
+        sock.close()
+        conn.close()
+    except socket.error as (value, message):
+        sock.close()
+        conn.close()
+        sys.exit(1)
