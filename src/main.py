@@ -1,9 +1,11 @@
 import http.server, socket
 import logging, sys
+from logging.config import fileConfig
 
-logging.basicConfig(format='[%(levelname)s][%(asctime)s] %(message)s',
-                    datefmt='%m/%d/%Y %H:%M:%S', level=logging.DEBUG,
-                    filename='logs/connection.log')
+fileConfig('logs/logging.cfg')
+logger = logging.getLogger('proxy')
+sh = logging.StreamHandler()
+logger.addHandler(sh)
 
 
 if __name__ == "__main__":
@@ -15,20 +17,20 @@ if __name__ == "__main__":
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.bind((HOST, PORT))
             sock.listen(MAX_CONN)
-            logging.info("Initializing sockets...")
-            logging.info("Sockets binded successfully.")
-            logging.info("Server started @ %s:%s", HOST, PORT)
+            logger.info("Initializing sockets...")
+            logger.info("Sockets binded successfully.")
+            logger.info("Server started @ %s:%s", HOST, PORT)
             while True:
                 try:
                     conn, addr = sock.accept()
                     data = conn.recv(BUFFER_SIZE)
                     print(data.decode('ascii'))
                 except KeyboardInterrupt:
-                    logging.info("Finalizing connection...")
+                    logger.info("Finalizing connection...")
                     break
         sock.close()
-        logging.info("Connection closed.")
+        logger.info("Connection closed.")
         sys.exit(1)
     except Exception as e:
-        logging.error("Unable to initialize socket,", e)
+        logger.error("Unable to initialize socket,", e)
         sys.exit(2)
