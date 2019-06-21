@@ -1,18 +1,16 @@
 import http.server, socket
 import logging, sys
-from logging.config import fileConfig
 
-fileConfig('logs/logging.cfg')
+logging.config.fileConfig('logs/logging.cfg')
 logger = logging.getLogger('proxy')
 sh = logging.StreamHandler()
 logger.addHandler(sh)
 
+HOST, PORT = "localhost", 8080
+MAX_CONN = 5
+BUFFER_SIZE = 1024
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 8080
-    MAX_CONN = 5
-    BUFFER_SIZE = 1024
-
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.bind((HOST, PORT))
