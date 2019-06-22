@@ -1,3 +1,28 @@
+import re
+
+def get_host(data):
+    """Extracts host from requested package.
+
+    :data: TODO
+    :returns: TODO
+
+    """
+    data = data.decode('ascii')
+    hostpos = data.find('Host:')
+    return re.sub(':[0-9]+', '', data[hostpos+5:])
+
+def filter(blacklist, host):
+    """Analyse proxy restrictions.
+
+    :blacklist: list of blocked hosts
+    :returns: true if allowed, false if blocked
+
+    """
+    if host not in blacklist:
+        return True
+    else:
+        return False
+
 def conn_string(conn, data, addr):
     """String parser for connection.
 
@@ -61,7 +86,7 @@ def proxy_server(webserver, port, conn, data, addr):
                 break
         sock.close()
         conn.close()
-    except socket.error as (value, message):
+    except socket.error as message:
         sock.close()
         conn.close()
         sys.exit(1)
