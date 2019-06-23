@@ -1,92 +1,30 @@
-import re
+import socketserver
+import threading
+import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+import utils
 
-def get_host(data):
-    """Extracts host from requested package.
-
-    :data: TODO
-    :returns: TODO
-
+class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
     """
-    data = data.decode('ascii')
-    hostpos = data.find('Host:')
-    return re.sub(':[0-9]+', '', data[hostpos+5:])
+    The request handler class for our server.
 
-def filter(blacklist, host):
-    """Analyse proxy restrictions.
-
-    :blacklist: list of blocked hosts
-    :returns: true if allowed, false if blocked
-
+    It is instantiated once per connection to the server, and must
+    override the handle() method to implement communication to the
+    client.
     """
-    if host not in blacklist:
-        return True
-    else:
-        return False
 
-def conn_string(conn, data, addr):
-    """String parser for connection.
-
-    :conn: TODO
-    :data: TODO
-    :addr: TODO
-    :returns: TODO
-
-    """
-    try:
-        first_line = data.split('\n')[0]
-        url = first_list.split()[1]
-        http_pos = url.find('://')
-        if http_pos == -1:
-            temp = url
-        else:
-            temp = url[(http_pos+3):]
-
-        port_pos = temp.find(':')
-        webserver_pos = temp.find('/')
-        if webserver_pos == -1:
-            webserver_pos = len(temp)
-        webserver = ''
-        port = -1
-        if port_pos == -1 or webserver_pos < port_pos:
-            port = 80
-            webserver = temp[:webserver_pos]
-        else:
-            port = int(temp[(port_pos+1):][:webserver_pos-port_pos-1])
-            webserver = temp[:port_pos]
-
-        proxy_server(webserver, port, conn, addr, data)
-
-    except Exception as e:
-        pass
-
-def proxy_server(webserver, port, conn, data, addr):
-    """TODO: Docstring for proxy_server.
-
-    :webserver: TODO
-    :port: TODO
-    :conn: TODO
-    :data: TODO
-    :addr: TODO
-    :returns: TODO
-
-    """
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((HOST, PORT))
-        sock.send(data)
-        while True:
-            reply = sock.recv(BUFFER_SIZE)
-            if len(reply) > 0:
-                conn.send(reply)
-                dar = float(len(reply))
-                dar = dar / BUFFER_SIZE
-                dar = '%.3s KB' % str(dar)
-                print('req %s %s' % (str(addr[0]), dar))
-            else:
-                break
-        sock.close()
-        conn.close()
-    except socket.error as message:
-        sock.close()
-        conn.close()
-        sys.exit(1)
+    def handle(self):
+        # self.request is the TCP socket connected to the client
+        sender = requests.Session()
+        retries = Retry(total=3, backoff_factor=1)
+        self.data = self.request.recv(1024).strip().decode('ascii')
+        cur_thread = threading.current_thread()
+        response = bytes("{}: {}".format(cur_thread.name, self.data), 'ascii')
+        # self.logger.info("Requested host: %s", utils.get_host(self.data))
+        print(response.decode('ascii'))
+        # just send back the same data, but upper-cased
+        q = requests.Request('GET', 'https://jader.ml')
+        sender.mount('http://', HTTPAdapter(max_retries=retries))
+        sender.send(q.prepare())
+        self.request.sendall(sender.response())

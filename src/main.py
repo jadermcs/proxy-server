@@ -1,53 +1,64 @@
-import http.server, socket
+#!/usr/bin/env python3
+"""Python web proxy with content filter and caching.
+"""
+import socketserver
 import argparse
-import handler
-import logging, sys
+import sys
+import logging
 from logging import config
+import handler
+import utils
+
 
 config.fileConfig('logs/logging.cfg')
-logger = logging.getLogger('proxy')
-sh = logging.StreamHandler()
-logger.addHandler(sh)
+LOGGER = logging.getLogger('proxy')
+SH = logging.StreamHandler()
+LOGGER.addHandler(SH)
 
 HOST, PORT = "localhost", 8080
 MAX_CONN = 5
 BUFFER_SIZE = 1024
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--blacklist', dest='blacklist', help='a black'
+    PARSER = argparse.ArgumentParser()
+    PARSER.add_argument('--blacklist', dest='blacklist', help='a black'
                         'list file containing blocked hosts.',
                         default='blacklist.txt')
-    parser.add_argument('--whitelist', dest='whitelist', help='a white'
+    PARSER.add_argument('--whitelist', dest='whitelist', help='a white'
                         'list file containing allowed hosts.',
                         default='whitelist.txt')
-    args = parser.parse_args()
-    blacklist = [line.rstrip('\n') for line in
-                 open(args.blacklist).readlines()]
-    logger.info("Blacklisted domains: " + str(blacklist))
+    ARGS = PARSER.parse_args()
+    BLACKLIST = [line.rstrip('\n') for line in
+                 open(ARGS.blacklist).readlines()]
+    LOGGER.info("Blacklisted domains: %s", str(BLACKLIST))
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.bind((HOST, PORT))
-            sock.listen(MAX_CONN)
-            logger.info("Initializing sockets...")
-            logger.info("Sockets binded successfully.")
-            logger.info("Server started @ %s:%s", HOST, PORT)
-            while True:
-                try:
-                    conn, addr = sock.accept()
-                    data = conn.recv(BUFFER_SIZE)
-                    domain = handler.get_host(data)
-                    if filter(blacklist, domain):
-                        conn.send(b'blocked.')
-                        conn.close()
-                        logger.warn('A domain was blocked, domain: %s', domain)
-                    print(data.decode('ascii'))
-                except KeyboardInterrupt:
-                    logger.info("Finalizing connection...")
-                    sys.exit(0)
-        sock.close()
-        logger.info("Connection closed.")
-        sys.exit(1)
-    except Exception as e:
-        logger.error("Unable to initialize socket,", e)
-        sys.exit(2)
+        LOGGER.info("Initializing server...")
+        # Create the server, binding to localhost on port 9999
+        server = socketserver.ThreadingTCPServer((HOST, PORT),
+                              handler.ThreadedTCPRequestHandler)
+        LOGGER.info("Sockets binded successfully.")
+        LOGGER.info("Server started @ %s:%s", HOST, PORT)
+        # Activate the server; this will keep running until you
+        # interrupt the program with Ctrl-C
+        server.serve_forever()
+    except KeyboardInterrupt:
+        LOGGER.info("Finalizing connection...")
+    LOGGER.info("Quiting.")
+
+
+    #                 # DOMAIN = handler.get_host(DATA)
+    #                 # if handler.filter_content(BLACKLIST, DOMAIN):
+    #                 #     CONN.send(b'Blocked content.')
+    #                 #     CONN.close()
+    #                 #     LOGGER.warning('A domain was blocked, domain: %s', DOMAIN)
+    #                 print(DATA.decode('ascii'))
+    #             except KeyboardInterrupt:
+    #                 CONN.close()
+    #                 LOGGER.info("Finalizing connection...")
+    #                 break
+    #     sock.close()
+    #     LOGGER.info("Connection closed.")
+    #     sys.exit(1)
+    # except socket.error as err:
+    #     LOGGER.error("Unable to initialize socket, %s", err)
+    #     sys.exit(2)
