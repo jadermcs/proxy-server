@@ -38,6 +38,7 @@ if __name__ == "__main__":
                     data = conn.recv(BUFFER_SIZE)
                     domain = handler.get_host(data)
                     if filter(blacklist, domain):
+                        conn.send(b'blocked.')
                         conn.close()
                         logger.warn('A domain was blocked, domain: %s', domain)
                     print(data.decode('ascii'))
