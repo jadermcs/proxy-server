@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 import socketserver
 import http.server
 import threading
@@ -31,7 +32,7 @@ class ThreadedTCPRequestHandler(http.server.SimpleHTTPRequestHandler):
 class MyHandler(http.server.SimpleHTTPRequestHandler):
     def do_CONNECT(self):
         print(self.path)
-        req = requests.get(self.path)
+        # req = requests.get(self.path)
         # if not self.path.endswith(".html"):
         #     self.path = 'http://' + self.path.split(':')[0]
         #     self.path += '/index.html'
@@ -51,19 +52,15 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         #     self.send_response(401, "Unauthorized domain.")
         # elif self.path in self.whitelist:
         #     self.send_response(200)
-        req = requests.get(self.path)
+        req = requests.get(self.path, stream=True)
         dirpath = self.path.lstrip('http://').split('/')
         filepath = '/'.join(dirpath[:-1])
         pathlib.Path(CACHE_FOLDER + filepath).mkdir(parents=True,
                                                     exist_ok=True)
         filename = '/index.html' if not dirpath[-1] else '/'+dirpath[-1]
-        print(dirpath)
-        print(CACHE_FOLDER + filepath + filename)
-        with open(CACHE_FOLDER + filepath + filename, 'w') as fout:
-            fout.write(req.text)
-            # for k, v in req.headers.items():
-            #     self.send_header(k, v)
-            # self.send_header('Content type', 'text/html')
-            # self.end_headers()
-            self.wfile.write(bytearray(req.text, 'utf-8'))
+        with open(CACHE_FOLDER + filepath + filename, 'wb') as fout:
+            for chunk in req.iter_content(1024):
+                fout.write(chunk)
+        with open(CACHE_FOLDER + filepath + filename, 'rb') as fin:
+            self.wfile.write(fin.read())
             self.send_response(200)

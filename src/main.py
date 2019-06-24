@@ -21,28 +21,22 @@ BUFFER_SIZE = 1024
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
-    PARSER.add_argument('--black', dest='blacklist', help='blacklist file'
+    PARSER.add_argument('--black', dest='black', help='blacklist file'
                         ' containing blocked hosts.', default='blacklist.txt')
-    PARSER.add_argument('--white', dest='whitelist', help='whitelist file'
+    PARSER.add_argument('--white', dest='white', help='whitelist file'
                         ' containing allowed hosts.', default='whitelist.txt')
     PARSER.add_argument('--deny', dest='deny', help='list file containing '
                         'denied terms.', default='deny-terms.txt')
     ARGS = PARSER.parse_args()
-    BLACKLIST = [line.rstrip('\n') for line in
-                 open(ARGS.blacklist).readlines()]
-    WHITELIST = [line.rstrip('\n') for line in
-                 open(ARGS.whitelist).readlines()]
-    DENY      = [line.rstrip('\n') for line in
-                 open(ARGS.deny).readlines()]
+    BLACKLIST = [line.rstrip('\n') for line in open(ARGS.black).readlines()]
+    WHITELIST = [line.rstrip('\n') for line in open(ARGS.white).readlines()]
+    DENY      = [line.rstrip('\n') for line in open(ARGS.deny).readlines()]
     LOGGER.debug("Blacklisted domains: %s", str(BLACKLIST))
-    server = None
     LOGGER.info("Initializing server...")
+    handlerHTTP = handler.MyHandler
     # Create the server, binding to localhost on port 8080
-    # server = socketserver.ThreadingTCPServer((HOST, PORT),
-    #                                          handler.MyHandler)
+    server = socketserver.ThreadingTCPServer((HOST, PORT), handlerHTTP)
     #                       handler.ThreadedTCPRequestHandler)
-    server = socketserver.TCPServer((HOST, PORT),
-                                    handler.MyHandler)
     try:
         LOGGER.info("Sockets binded successfully.")
         LOGGER.info("Server started @ %s:%s", HOST, PORT)
