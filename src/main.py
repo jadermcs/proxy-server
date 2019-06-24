@@ -21,21 +21,29 @@ BUFFER_SIZE = 1024
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
-    PARSER.add_argument('--blacklist', dest='blacklist', help='a black'
-                        'list file containing blocked hosts.',
-                        default='blacklist.txt')
-    PARSER.add_argument('--whitelist', dest='whitelist', help='a white'
-                        'list file containing allowed hosts.',
-                        default='whitelist.txt')
+    PARSER.add_argument('--black', dest='blacklist', help='blacklist file'
+                        ' containing blocked hosts.', default='blacklist.txt')
+    PARSER.add_argument('--white', dest='whitelist', help='whitelist file'
+                        ' containing allowed hosts.', default='whitelist.txt')
+    PARSER.add_argument('--deny', dest='deny', help='list file containing '
+                        'denied terms.', default='deny-terms.txt')
     ARGS = PARSER.parse_args()
     BLACKLIST = [line.rstrip('\n') for line in
                  open(ARGS.blacklist).readlines()]
-    LOGGER.info("Blacklisted domains: %s", str(BLACKLIST))
+    WHITELIST = [line.rstrip('\n') for line in
+                 open(ARGS.whitelist).readlines()]
+    DENY      = [line.rstrip('\n') for line in
+                 open(ARGS.deny).readlines()]
+    LOGGER.debug("Blacklisted domains: %s", str(BLACKLIST))
+    server = None
+    LOGGER.info("Initializing server...")
+    # Create the server, binding to localhost on port 8080
+    # server = socketserver.ThreadingTCPServer((HOST, PORT),
+    #                                          handler.MyHandler)
+    #                       handler.ThreadedTCPRequestHandler)
+    server = socketserver.TCPServer((HOST, PORT),
+                                    handler.MyHandler)
     try:
-        LOGGER.info("Initializing server...")
-        # Create the server, binding to localhost on port 9999
-        server = socketserver.ThreadingTCPServer((HOST, PORT),
-                              handler.ThreadedTCPRequestHandler)
         LOGGER.info("Sockets binded successfully.")
         LOGGER.info("Server started @ %s:%s", HOST, PORT)
         # Activate the server; this will keep running until you
@@ -43,22 +51,7 @@ if __name__ == "__main__":
         server.serve_forever()
     except KeyboardInterrupt:
         LOGGER.info("Finalizing connection...")
+    finally:
+        server.server_close()
     LOGGER.info("Quiting.")
-
-
-    #                 # DOMAIN = handler.get_host(DATA)
-    #                 # if handler.filter_content(BLACKLIST, DOMAIN):
-    #                 #     CONN.send(b'Blocked content.')
-    #                 #     CONN.close()
-    #                 #     LOGGER.warning('A domain was blocked, domain: %s', DOMAIN)
-    #                 print(DATA.decode('ascii'))
-    #             except KeyboardInterrupt:
-    #                 CONN.close()
-    #                 LOGGER.info("Finalizing connection...")
-    #                 break
-    #     sock.close()
-    #     LOGGER.info("Connection closed.")
-    #     sys.exit(1)
-    # except socket.error as err:
-    #     LOGGER.error("Unable to initialize socket, %s", err)
-    #     sys.exit(2)
+    sys.exit(0)

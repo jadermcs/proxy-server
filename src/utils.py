@@ -8,11 +8,11 @@ def get_host(data):
     :returns: TODO
 
     """
-    data = data.decode('ascii')
-    hostpos = data.find('Host: ')
-    host = data[hostpos+6:]
-    host = host[:host.find('\r')]
-    return host.split(':')[0]
+
+    hostpos = data.find('http://')
+    host = data[hostpos+7:]
+    host = host[:host.find('/')]
+    return host
 
 def filter_content(blacklist, host):
     """Analyse proxy restrictions.
