@@ -33,7 +33,7 @@ if __name__ == "__main__":
     DENY      = [line.rstrip('\n') for line in open(ARGS.deny).readlines()]
     LOGGER.debug("Blacklisted domains: %s", str(BLACKLIST))
     LOGGER.info("Initializing server...")
-    handlerHTTP = handler.MyHandler
+    handlerHTTP = handler.ProxyHandler
     # Create the server, binding to localhost on port 8080
     server = socketserver.ThreadingTCPServer((HOST, PORT), handlerHTTP)
     #                       handler.ThreadedTCPRequestHandler)

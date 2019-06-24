@@ -1,51 +1,38 @@
 import pathlib
-import shutil
-import socketserver
+import select
 import http.server
+import http.client
+import socketserver
+import socket
 import threading
 import requests
 import utils
 
 CACHE_FOLDER = 'cache/'
 
-class ThreadedTCPRequestHandler(http.server.SimpleHTTPRequestHandler):
-    """
-    The request handler class for our server.
 
-    It is instantiated once per connection to the server, and must
-    override the handle() method to implement communication to the
-    client.
-    """
-    pass
-
-    # def handle(self):
-    #     # self.request is the TCP socket connected to the client
-    #     self.data = self.request.recv(1024)
-    #     cur_thread = threading.current_thread()
-    #     response = bytes("{}: {}".format(cur_thread.name, self.data), 'ascii')
-    #     # self.logger.info("Requested host: %s", utils.get_host(self.data))
-    #     print(response.decode('ascii'))
-    #     # just send back the same data, but upper-cased
-    #     self.request.send(self.data)
-
-
-class MyHandler(http.server.SimpleHTTPRequestHandler):
+class ProxyHandler(socketserver.ThreadingMixIn,
+                   http.server.SimpleHTTPRequestHandler):
     def do_CONNECT(self):
-        print(self.path)
-        # req = requests.get(self.path)
-        # if not self.path.endswith(".html"):
-        #     self.path = 'http://' + self.path.split(':')[0]
-        #     self.path += '/index.html'
-
-        # with open('index.html','w') as fout:
-        #     fout.write(req.text)
-        #     self.send_response(200)
-            # self.send_header('Content type', value)
-            # self.end_headers()
-            # self.wfile.write(bytearray(f.read(), 'ascii'))
-            # f.close()
-        # else:
-        #     self.send_error(404, "File not Found")
+        self.log_request(200)
+        self.wfile.write(bytearray(self.protocol_version +
+                                   " 200 Connection established\r\n", "ascii"))
+        self.wfile.write(bytearray("Proxy-agent: %s\r\n" %
+                                   self.version_string(), "ascii"))
+        self.wfile.write(b"\r\n")
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        host, port = self.path.split(':')
+        port = int(port)
+        s.connect((host, port))
+        self.turn_to(s, 900)
+        s.close()
+        self.connection.close()
+        # print(self.requestline)
+        # conn = http.client.HTTPSConnection(self.path)
+        # conn.request("GET", "/css?family=IBM+Plex+Mono:400,700")
+        # r1 = conn.getresponse()
+        # self.send_response(r1.status)
+        # conn.close()
 
     def do_GET(self):
         # if self.path in self.blacklist:
@@ -64,3 +51,33 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         with open(CACHE_FOLDER + filepath + filename, 'rb') as fin:
             self.wfile.write(fin.read())
             self.send_response(200)
+
+
+    def turn_to(self, s, timeout = 60):
+        iw = [self.connection, s]
+        ow = []
+        time = 0
+        while time < timeout:
+            time += 1
+            (ins, _, exs) = select.select(iw, ow, iw, 1)
+            if exs: #exception
+                break
+            elif ins: #input readable
+                for i in ins:
+                    if i is s:
+                        o = self.connection
+                    elif i is self.connection:
+                        o = s
+                    else:
+                        pass
+                    try:
+                        data = i.recv(8192)
+                    except:
+                        data = None
+                    if data:
+                        o.send(data)
+                        time = 0
+                    else:
+                        pass
+            else: # output readable
+                pass
